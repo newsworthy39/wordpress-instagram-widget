@@ -145,9 +145,11 @@ class Foo_Widget extends WP_Widget {
 		print '<div class="row"><span>';
 		foreach($obj->data as $row) {
 			printf('<a href="%s"><image src="%s" class="image" alt="%s" /></a>', $row->link, $row->images->low_resolution->url, $row->tags[rand(0,count($row->tags)-1)]);
-#			echo __( sprintf('<image src="%s" />', $row->images->low_resolution->url ), 'text_domain' );
 		}
+
 		print '</span></div>';
+
+        echo __( esc_attr('API Service courtesy of Instagram 2016'), 'text_domain' );
 
 		echo $args['after_widget'];
 	}

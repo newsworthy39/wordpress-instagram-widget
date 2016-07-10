@@ -14,6 +14,43 @@ Author URI: http://mjay.me
 */
 
 
+# Hack the memcache into php
+$GLOBALS['memcached-sets'] = array (
+    '_' => array (
+            array('localhost', 11211)
+    )
+);
+
+define('DEFAULT_MEMCACHED_SET', '_');
+
+function mcache( $persistent_id=DEFAULT_MEMCACHED_SET ) {
+
+        // one instantiation per-connection per-request
+        static $memcached_instances = array();
+
+        if( array_key_exists($persistent_id, $memcached_instances)) {
+            $instance = $memcached_instances[$persistent_id];
+        }else{
+            $instance = new Memcached($persistent_id);
+            $instance->setOption(Memcached::OPT_PREFIX_KEY, $persistent_id);
+            $instance->setOption(Memcached::OPT_LIBKETAMA_COMPATIBLE, true); // advisable option
+
+            // Add servers if no connections listed. Get server set by $persistent_id or use default set.
+            // In a production environment with multiple server sets you may wish to prevent typos from silently adding data 
+            // to the default pool, in which case return an error on no match instead of defaulting
+            if( !count($instance->getServerList()) ) {
+                $servers = array_key_exists($persistent_id, $GLOBALS['memcached-sets'])
+                    ? $GLOBALS['memcached-sets'][$persistent_id]
+                    : $GLOBALS['memcached-sets'][DEFAULT_MEMCACHED_SET];
+                $instance->addServers($servers);
+            }
+
+            $memcached_instances[$persistent_id] = $instance;
+        }
+
+    return $instance;
+}
+
 
 /**
  * Adds Foo_Widget widget.
@@ -67,14 +104,22 @@ class Foo_Widget extends WP_Widget {
 
 	function fetchRecentMedia($tag, $token, $secret) {
 
+		# our cache-key is the full url.
 		$endpoint = sprintf("https://api.instagram.com/v1/tags/%s/media/recent?access_token=%s", $tag, $token);
 
-		$params = array(
-		);
+		$data = mcache()->get($endpoint);
 
-		#$params['sig'] = $this->generate_sig($endpoint, $params, $secret);
+		if (!is_object($data)) {
+			$params = array( );
+			#$params['sig'] = $this->generate_sig($endpoint, $params, $secret);
+			$data = json_decode($this->fetchData($endpoint , $params));
+		}
 
-		return json_decode($this->fetchData($endpoint , $params));
+		# Move cache-window ahead.
+		mcache()->set($endpoint, $data, 60);
+
+		return $data;
+			
 	}
 
 
@@ -99,7 +144,7 @@ class Foo_Widget extends WP_Widget {
 
 		print '<div class="row"><span>';
 		foreach($obj->data as $row) {
-			printf('<image src="%s" class="image" />', $row->images->low_resolution->url );
+			printf('<a href="%s"><image src="%s" class="image" alt="%s" /></a>', $row->link, $row->images->low_resolution->url, $row->tags[rand(0,count($row->tags)-1)]);
 #			echo __( sprintf('<image src="%s" />', $row->images->low_resolution->url ), 'text_domain' );
 		}
 		print '</span></div>';

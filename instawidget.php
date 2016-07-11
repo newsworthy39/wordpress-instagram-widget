@@ -142,12 +142,12 @@ class Foo_Widget extends WP_Widget {
 
 		$obj =  $this->fetchRecentMedia($instance['tag'],$instance['token'], $instance['secret']) ;
 
-		print '<div class="row"><span>';
 		foreach($obj->data as $row) {
-			printf('<a href="%s"><image src="%s" class="image" alt="%s" /></a>', $row->link, $row->images->low_resolution->url, $row->tags[rand(0,count($row->tags)-1)]);
+			print '<div class="image">';
+			printf('<a href="%s"><image src="%s"><h2><span># %s</span></h2></a>', $row->link, $row->images->low_resolution->url, $row->tags[rand(0,count($row->tags)-1)]);
+			print '</div>';
 		}
 
-		print '</span></div>';
 
         echo __( esc_attr('API Service courtesy of Instagram 2016'), 'text_domain' );
 

@@ -144,12 +144,20 @@ class Foo_Widget extends WP_Widget {
 
 		foreach($obj->data as $row) {
 			print '<div class="image">';
-			printf('<a href="%s"><image src="%s"><h2><span># %s</span></h2></a>', $row->link, $row->images->low_resolution->url, $row->tags[rand(0,count($row->tags)-1)]);
+
+			$matches = array();
+
+			if( 0 == preg_match("/(\d)+.?kr/", $row->caption->text, $matches)) {
+				printf('<a href="%s"><image src="%s"><h2><span># %s</span></h2></a>', $row->link, $row->images->low_resolution->url, $row->tags[rand(0,count($row->tags)-1)]);
+			} else {
+				printf('<a href="%s"><image src="%s"><h2><span>Sælges: %s</span></h2></a>', $row->link, $row->images->low_resolution->url, $matches[0]);
+			}
+
 			print '</div>';
 		}
 
 
-        echo __( esc_attr('API Service courtesy of Instagram 2016'), 'text_domain' );
+	        echo __( esc_attr('API Service courtesy of Instagram 2016'), 'text_domain' );
 
 		echo $args['after_widget'];
 	}

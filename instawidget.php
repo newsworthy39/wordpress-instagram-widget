@@ -109,14 +109,36 @@ class Foo_Widget extends WP_Widget {
 
 		$data = mcache()->get($endpoint);
 
-		if (!is_object($data)) {
+		# empty cache, create the stuff by fetching it from instagram.
+		if (!is_object($data) ||  $data->cache_updated_required) {
+
 			$params = array( );
 			#$params['sig'] = $this->generate_sig($endpoint, $params, $secret);
 			$data = json_decode($this->fetchData($endpoint , $params));
+
+			# Necessary fields, to manage cache
+			$tmp = array();
+			for ($i = 0 ; $i < 60; $i++) {
+				$tmp[$i] = 0;
+			}
+			$data->cache_accessed = $tmp;
+
+		} else {
+
+			$slot = time() % 60; # Create a cache-window of 60 seconds.
+
+			$accessed = $data->cache_accessed[$slot];
+
+			$data->cache_accessed[$slot] = ++ $accessed;
+
+			# Only, when a single slot has more than 10 hits, will we fetch new.
+			if ($data->cache_accessed[$slot] > 10) {
+				$data->cache_updated_required = true;
+			}
 		}
 
-		# Move cache-window ahead.
-		mcache()->set($endpoint, $data, 60);
+		# Move cache-window ahead. Ensure cache is expired regardless every hour.
+		while(  FALSE === (mcache()->set($endpoint, $data, 3600))  );
 
 		return $data;
 			

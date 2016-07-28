@@ -137,7 +137,7 @@ class Foo_Widget extends WP_Widget {
 			}
 		}
 
-		# Move cache-window ahead. Ensure cache is expired regardless every hour.
+		# Move cache-window ahead. If more than a hour has passed, it will have expired.
 		while(  FALSE === (mcache()->set($endpoint, $data, 3600))  );
 
 		return $data;
@@ -164,7 +164,13 @@ class Foo_Widget extends WP_Widget {
 
 		$obj =  $this->fetchRecentMedia($instance['tag'],$instance['token'], $instance['secret']) ;
 
-		foreach($obj->data as $row) {
+		$elements = $instance['elements'];
+		if (empty($elements)) {
+			$elements = 10;
+		}
+
+		foreach( $obj->data as $row) {
+			if ($elements-- <= 0) break;
 			print '<div class="image">';
 
 			$matches = array();
@@ -196,6 +202,7 @@ class Foo_Widget extends WP_Widget {
 		$token = ! empty( $instance['token'] ) ? $instance['token'] : __( 'The client token', 'text_domain' );
 		$secret = ! empty( $instance['secret'] ) ? $instance['secret'] : __( 'The client secret', 'text_domain' );
 		$tag = ! empty( $instance['tag'] ) ? $instance['tag'] : __( 'The client tag', 'text_domain' );
+		$elements = ! empty( $instance['elements'] ) ? $instance['elements'] : __( 'The number of elements to show', 'text_domain' );
 		?>
 		<p>
 		<label for="<?php echo esc_attr( $this->get_field_id( 'title' ) ); ?>"><?php _e( esc_attr( 'Title:' ) ); ?></label> 
@@ -217,6 +224,11 @@ class Foo_Widget extends WP_Widget {
 		<input class="widefat" id="<?php echo esc_attr( $this->get_field_id( 'tag' ) ); ?>" name="<?php echo esc_attr( $this->get_field_name( 'tag' ) ); ?>" type="text" value="<?php echo esc_attr( $tag ); ?>">
 		</p>
 
+		<p>
+		<label for="<?php echo esc_attr( $this->get_field_id( 'elements' ) ); ?>"><?php _e( esc_attr( 'Num elements:' ) ); ?></label> 
+		<input class="widefat" id="<?php echo esc_attr( $this->get_field_id( 'elements' ) ); ?>" name="<?php echo esc_attr( $this->get_field_name( 'elements' ) ); ?>" type="number" min="1" max="10" value="<?php echo esc_attr( $elements ); ?>">
+		</p>
+
 		<?php 
 	}
 
@@ -236,6 +248,7 @@ class Foo_Widget extends WP_Widget {
 		$instance['token']=(! empty( $new_instance['token'] ) ) ? strip_tags( $new_instance['token'] ) : '';
 		$instance['secret']=(! empty( $new_instance['secret'] ) ) ? strip_tags( $new_instance['secret'] ) : '';
 		$instance['tag']=(! empty( $new_instance['tag'] ) ) ? strip_tags( $new_instance['tag'] ) : '';
+		$instance['elements']=(! empty( $new_instance['elements'] ) ) ? strip_tags( $new_instance['elements'] ) : '';
 
 		return $instance;
 	}
